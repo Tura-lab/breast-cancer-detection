@@ -1,9 +1,9 @@
 import pickle
 from typing import Dict
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 class Data(BaseModel):
     """JSON string containing the 32 features (exactly 32)"""
@@ -27,10 +27,14 @@ async def health_check():
     # just a health check endpoint
     return {"status": "healthy and working like a charmmmm"}
 
-@app.post("/predict")
-async def predict(data: Data, response_model=Prediction):
-    # will make the prediction here
-    prediction = model.predict([list(data.data.values())])
+@app.post("/predict", response_model=Prediction)
+async def predict(data: Data):
+    # wil make the prediction here
+    feature_array = list(data.data.values())
+    if len(feature_array) != 32:
+        return HTTPException(status_code=400, detail="Please provide exactly 32 features.")
+
+    prediction = model.predict([feature_array])
     final_verdict = pred_to_word(prediction[0])
     return {"prediction": final_verdict}
 
